@@ -99,7 +99,7 @@ def get_cells(input_file, sheetname, cell_area):
 	obj_ws = None
 	if sheetname is not None:
 		if sheetname in obj_wb.sheetnames:
-			obj_ws = obj_ws[sheetname]
+			obj_ws = obj_wb[sheetname]
 		else:
 			sys.stderr.write("ERROR: sheetname `{}` is not found.\n".format(sheetname))
 			sys.exit(1)
