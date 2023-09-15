@@ -12,6 +12,7 @@ signal.signal(signal.SIGINT, signal.SIG_DFL)
 import argparse
 import openpyxl
 import pyperclip
+import re
 
 from mods.func_prompt_io import check_exist
 
@@ -22,6 +23,7 @@ BORDER_VERTICAL = "|"
 BORDER_HORIZONTAL = "-"
 BORDER_CROSS = "+"
 BORDER_HEADER = "="
+RE_COORDINATE = re.compile(r"^(\D+)(\d+)$")
 
 
 
@@ -31,12 +33,15 @@ class Cell:
 		self._coordinate = coordinate
 		self._value = None
 		self._merged_cells = []
+		self._borders = [None, None, None, None]	# top, right, bottom, and left borders
 
 		self.set_value(value)
 
 
 	@property
 	def value(self):
+		if (self._value is None or self._value == "") and len(self._merged_cells) == 0:
+			return " "
 		return self._value
 
 	@property
@@ -57,6 +62,36 @@ class Cell:
 	@property
 	def merged_cells(self):
 		return self._merged_cells
+
+	@property
+	def borders(self):
+		if self._borders == [None, None, None, None]:
+			self.set_border()
+		return self._borders
+
+	@property
+	def has_border_top(self):
+		if self._borders == [None, None, None, None]:
+			self.set_border()
+		return self._borders[0]
+
+	@property
+	def has_border_right(self):
+		if self._borders == [None, None, None, None]:
+			self.set_border()
+		return self._borders[1]
+
+	@property
+	def has_border_bottom(self):
+		if self._borders == [None, None, None, None]:
+			self.set_border()
+		return self._borders[2]
+
+	@property
+	def has_border_left(self):
+		if self._borders == [None, None, None, None]:
+			self.set_border()
+		return self._borders[3]
 
 
 	def set_value(self, value):
@@ -89,8 +124,63 @@ class Cell:
 		return self
 
 
+	def set_border(self):
+		"""
+		Method to make border information from merged cell information
+		"""
+		self._borders = [True, True, True, True]
+		if len(self._merged_cells) == 0:
+			# not merged cell
+			return self
+
+		row_idx_self, col_idx_self = convert_coordinate2index(self._coordinate)
+		for obj_cell in self._merged_cells:
+			row_idx, col_idx = convert_coordinate2index(obj_cell.coordinate)
+			if row_idx_self == row_idx and col_idx_self < col_idx:
+				self._borders[1] = False
+			elif row_idx_self == row_idx and col_idx_self > col_idx:
+				self._borders[3] = False
+			elif row_idx_self < row_idx and col_idx_self == col_idx:
+				self._borders[2] = False
+			elif row_idx_self > row_idx and col_idx_self == col_idx:
+				self._borders[0] = False
+		return self
+
+
 
 # =============== Function =============== #
+def convert_index2coordinate(row, col):
+	"""
+	Function to convert cell index to coordinates
+
+	Args:
+		row (int): row index starting from 1
+		col (int): column index starting from 1
+
+	Returns:
+		str: cell coordinate
+	"""
+	col_name = openpyxl.utils.get_column_letter(col)
+	return "{}{}".format(col_name, row)
+
+
+def convert_coordinate2index(coordinate):
+	"""
+	Function to convert cell coordinate to index
+
+	Args:
+		coordinate (str): cell coordinate
+
+	Returns:
+		int: row index
+		int: column index
+	"""
+	obj_match = RE_COORDINATE.search(coordinate)
+	col_name, row_idx = obj_match.groups()
+	col_idx = openpyxl.utils.column_index_from_string(col_name)
+	return int(row_idx), int(col_idx)
+
+
 def get_cells(input_file, sheetname, cell_area):
 	# open workbook
 	obj_wb = openpyxl.load_workbook(input_file, data_only=True)
@@ -107,11 +197,12 @@ def get_cells(input_file, sheetname, cell_area):
 	else:
 		obj_ws = obj_wb.active
 
+	# determine default cell area
 	if cell_area == [None, None]:
 		cell_area[0] = "{}{}".format(obj_ws.min_column, obj_ws.min_row)
 		cell_area[1] = "{}{}".format(obj_ws.max_column, obj_ws.max_row)
 
-
+	# read cell and make cell objects
 	list_cells = {}
 	layout_cells = []
 	for row in obj_ws["{}:{}".format(*cell_area)]:
@@ -121,6 +212,7 @@ def get_cells(input_file, sheetname, cell_area):
 			layout_cells[-1].append(obj_cell)
 			list_cells[cell.coordinate] = obj_cell
 
+	# set merged cell information
 	merged_cells = [["{}{}".format(openpyxl.utils.get_column_letter(pos[1]), pos[0]) for pos in obj_cell.cells] for obj_cell in obj_ws.merged_cells.ranges]
 	for list_coordinate in merged_cells:
 		list_obj_cell = [list_cells[coordinate] for coordinate in list_coordinate]
@@ -141,48 +233,61 @@ def convert_markdown(layout_cells):
 	list_format = ["{0:>"+str(v)+"}" for v in list_width]
 
 	contents = []
-
-	# prepare horizontal border
-	list_border_horizontal = [[] for _ in range(len(layout_cells))]
-	for col_i in range(len(layout_cells[0])):
-		prev_state = False
-		for row_i in range(max_row):
+	for row_i in range(len(layout_cells)):
+		row = []
+		border_horizontal_top = []
+		border_horizontal_bottom = []
+		for col_i in range(len(layout_cells[row_i])):
 			obj_cell = layout_cells[row_i][col_i]
-			if not (obj_cell.is_merged & prev_state):
-				# not merged -> border
-				list_border_horizontal[row_i].append(BORDER_HORIZONTAL*list_width[col_i])
+			if row_i == 0:
+				# first row
+				if obj_cell.has_border_top:
+					# add horizontal top border
+					border_horizontal_top.append(BORDER_HORIZONTAL*list_width[col_i])
+				else:
+					# no border
+					border_horizontal_top.append(" "*list_width[col_i])
 
+			if col_i == 0:
+				# first column
+				# left border
+				if obj_cell.has_border_left:
+					# add vertical left border
+					row.append(BORDER_VERTICAL)
+				else:
+					# no border
+					row.append(" ")
+
+			# add value
+			row.append(list_format[col_i].format(obj_cell.value))
+
+			# right border
+			if obj_cell.has_border_right:
+				# add vertical right border
+				row.append(BORDER_VERTICAL)
 			else:
-				# merge -> no border
-				list_border_horizontal[row_i].append(list_format[col_i].format(""))
+				# no border
+				row.append(" ")
 
-			prev_state = obj_cell.is_merged
-
-	for row_i, row in enumerate(layout_cells):
-		# draw top border
-		border_horizontal = [""] + list_border_horizontal[row_i] + [""]
-		contents.append(BORDER_CROSS.join(border_horizontal))
-
-		# draw values and vertical border
-		new_row = []
-		prev_state = False
-		for col_i, obj_cell in enumerate(row):
-			if not (obj_cell.is_merged & prev_state):
-				# not merged -> border
-				new_row.append(BORDER_VERTICAL)
-
+			# bottom border
+			if obj_cell.has_border_bottom:
+				# add horizontal bottom border
+				border_horizontal_bottom.append(BORDER_HORIZONTAL*list_width[col_i])
 			else:
-				# merged -> no border
-				new_row.append(" ")
+				# no border
+				border_horizontal_bottom.append(" "*list_width[col_i])
 
-			new_row.append(list_format[col_i].format(obj_cell.value))
-			prev_state = obj_cell.is_merged
-		new_row.append(BORDER_VERTICAL)
-		contents.append("".join([str(v) for v in new_row]))
+		# add top border
+		if len(border_horizontal_top) != 0:
+			border_horizontal_top = [""] + border_horizontal_top + [""]
+			contents.append(BORDER_CROSS.join(border_horizontal_top))
+		# add row
+		contents.append("".join(row))
 
-	# draw bottom border
-	border_horizontal = [""] + list_border_horizontal[0] + [""]
-	contents.append(BORDER_CROSS.join(border_horizontal))
+		# add bottom border
+		if len(border_horizontal_bottom) != 0:
+			border_horizontal_bottom = [""] + border_horizontal_bottom + [""]
+			contents.append(BORDER_CROSS.join(border_horizontal_bottom))
 
 	return "\n".join(contents)
 
