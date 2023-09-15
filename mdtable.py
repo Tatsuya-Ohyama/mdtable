@@ -36,6 +36,7 @@ class Cell:
 		self._merged_cells = []
 		self._borders = [None, None, None, None]	# top, right, bottom, and left borders
 		self._style = None
+		self._size = [None, None]
 
 		self.set_value(value)
 
@@ -51,8 +52,22 @@ class Cell:
 		return self._coordinate
 
 	@property
-	def length(self):
-		return len(self._value)
+	def size(self):
+		if self._size == [None, None]:
+			self.get_size()
+		return self._size
+
+	@property
+	def width(self):
+		if self._size == [None, None]:
+			self.get_size()
+		return self._size[1]
+
+	@property
+	def height(self):
+		if self._size == [None, None]:
+			self.get_size()
+		return self._size[0]
 
 	@property
 	def format_value(self):
@@ -103,7 +118,22 @@ class Cell:
 		return self._borders[3]
 
 
+	def get_size(self):
+		"""
+		Method to get cell size
+		"""
+		list_value = self.format_value.split("\n")
+		self._size = [len(list_value), max([len(v) for v in list_value])]
+		return self
+
+
 	def set_value(self, value):
+		"""
+		Method to set value
+
+		Args:
+			value (any): cell value
+		"""
 		if value is None:
 			self._value = ""
 		else:
@@ -247,20 +277,28 @@ def get_cells(input_file, sheetname, cell_area):
 
 
 def convert_markdown(layout_cells):
+	max_row = len(layout_cells)
+	max_col = len(layout_cells[0])
+
 	# check width
 	list_width = []
-	max_row = len(layout_cells)
-	for col_i in range(len(layout_cells[0])):
-		value_length = [len(str(layout_cells[row_i][col_i].value)) for row_i in range(max_row)]
-		list_width.append(max(value_length))
+	for col_i in range(max_col):
+		width = [layout_cells[row_i][col_i].width for row_i in range(max_row)]
+		list_width.append(max(width))
 	list_format = ["{0:<"+str(v)+"}" for v in list_width]
 
+	# check height
+	list_height = []
+	for row_i in range(max_row):
+		height = [layout_cells[row_i][col_i].height for col_i in range(max_col)]
+		list_height.append(max(height))
+
 	contents = []
-	for row_i in range(len(layout_cells)):
-		row = []
+	for row_i in range(max_row):
+		row = [[] for _ in range(list_height[row_i])]
 		border_horizontal_top = []
 		border_horizontal_bottom = []
-		for col_i in range(len(layout_cells[row_i])):
+		for col_i in range(max_col):
 			obj_cell = layout_cells[row_i][col_i]
 			if row_i == 0:
 				# first row
@@ -276,21 +314,30 @@ def convert_markdown(layout_cells):
 				# left border
 				if obj_cell.has_border_left:
 					# add vertical left border
-					row.append(BORDER_VERTICAL)
+					for r in row:
+						r.append(BORDER_VERTICAL)
 				else:
 					# no border
-					row.append(" ")
+					for r in row:
+						r.append(" ")
 
 			# add value
-			row.append(list_format[col_i].format(obj_cell.format_value))
+			values = obj_cell.format_value.split("\n")
+			if len(values) < len(row):
+				values += [""]*(len(row) - len(values))
+			values = [list_format[col_i].format(v) for v in values]
+			for r, v  in zip(row, values):
+				r.append(v)
 
 			# right border
 			if obj_cell.has_border_right:
 				# add vertical right border
-				row.append(BORDER_VERTICAL)
+				for r in row:
+					r.append(BORDER_VERTICAL)
 			else:
 				# no border
-				row.append(" ")
+				for r in row:
+					r.append(" ")
 
 			# bottom border
 			if obj_cell.has_border_bottom:
@@ -305,7 +352,8 @@ def convert_markdown(layout_cells):
 			border_horizontal_top = [""] + border_horizontal_top + [""]
 			contents.append(BORDER_CROSS.join(border_horizontal_top))
 		# add row
-		contents.append("".join(row))
+		for r in row:
+			contents.append("".join(r))
 
 		# add bottom border
 		if len(border_horizontal_bottom) != 0:

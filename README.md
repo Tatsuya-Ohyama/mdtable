@@ -40,6 +40,9 @@ Copyright (c) 2023 Tatsuya Ohyama
 
 
 ## ChangeLog
+### Ver. 2.1 (2023-09-15)
+* Support multiline in a cell.
+
 ### Ver. 2.0 (2023-09-15)
 * Change drawing method of borders.
 * Support number format.
