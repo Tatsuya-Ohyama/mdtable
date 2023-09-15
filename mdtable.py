@@ -238,7 +238,7 @@ def get_cells(input_file, sheetname, cell_area):
 	# set merged cell information
 	merged_cells = [["{}{}".format(openpyxl.utils.get_column_letter(pos[1]), pos[0]) for pos in obj_cell.cells] for obj_cell in obj_ws.merged_cells.ranges]
 	for list_coordinate in merged_cells:
-		list_obj_cell = [list_cells[coordinate] for coordinate in list_coordinate]
+		list_obj_cell = [list_cells[coordinate] for coordinate in list_coordinate if coordinate in list_cells.keys()]
 		for obj_cell in list_obj_cell:
 			partner_obj_cell = set(list_obj_cell) - set([obj_cell])
 			obj_cell.set_merged_cell(list(partner_obj_cell))
@@ -253,7 +253,7 @@ def convert_markdown(layout_cells):
 	for col_i in range(len(layout_cells[0])):
 		value_length = [len(str(layout_cells[row_i][col_i].value)) for row_i in range(max_row)]
 		list_width.append(max(value_length))
-	list_format = ["{0:^"+str(v)+"}" for v in list_width]
+	list_format = ["{0:<"+str(v)+"}" for v in list_width]
 
 	contents = []
 	for row_i in range(len(layout_cells)):
