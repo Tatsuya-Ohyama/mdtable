@@ -24,6 +24,7 @@ BORDER_HORIZONTAL = "-"
 BORDER_CROSS = "+"
 BORDER_HEADER = "="
 RE_COORDINATE = re.compile(r"^(\D+)(\d+)$")
+RE_NUMBER_FORMAT_VALUE = re.compile(r"0.(0+)")
 
 
 
@@ -34,6 +35,7 @@ class Cell:
 		self._value = None
 		self._merged_cells = []
 		self._borders = [None, None, None, None]	# top, right, bottom, and left borders
+		self._style = None
 
 		self.set_value(value)
 
@@ -51,6 +53,13 @@ class Cell:
 	@property
 	def length(self):
 		return len(self._value)
+
+	@property
+	def format_value(self):
+		if self._style is not None and (isinstance(self._value, int) or isinstance(self._value, float)):
+			return self._style.format(self._value)
+		else:
+			return self._value
 
 	@property
 	def is_merged(self):
@@ -110,6 +119,19 @@ class Cell:
 			obj_cell (Cell object): Cell object
 		"""
 		self._merged_cells.append(obj_cell)
+		return self
+
+
+	def set_number_format(self, number_format):
+		"""
+		Method to set style
+
+		Args:
+			number_format (str): number format style
+		"""
+		obj_match = RE_NUMBER_FORMAT_VALUE.search(number_format)
+		if obj_match:
+			self._style = "{0:." + str(len(obj_match.group(1))) + "f}"
 		return self
 
 
@@ -209,6 +231,7 @@ def get_cells(input_file, sheetname, cell_area):
 		layout_cells.append([])
 		for cell in row:
 			obj_cell = Cell(cell.coordinate, cell.value)
+			obj_cell.set_number_format(cell.number_format)
 			layout_cells[-1].append(obj_cell)
 			list_cells[cell.coordinate] = obj_cell
 
@@ -230,7 +253,7 @@ def convert_markdown(layout_cells):
 	for col_i in range(len(layout_cells[0])):
 		value_length = [len(str(layout_cells[row_i][col_i].value)) for row_i in range(max_row)]
 		list_width.append(max(value_length))
-	list_format = ["{0:>"+str(v)+"}" for v in list_width]
+	list_format = ["{0:^"+str(v)+"}" for v in list_width]
 
 	contents = []
 	for row_i in range(len(layout_cells)):
@@ -259,7 +282,7 @@ def convert_markdown(layout_cells):
 					row.append(" ")
 
 			# add value
-			row.append(list_format[col_i].format(obj_cell.value))
+			row.append(list_format[col_i].format(obj_cell.format_value))
 
 			# right border
 			if obj_cell.has_border_right:

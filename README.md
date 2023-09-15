@@ -40,6 +40,11 @@ Copyright (c) 2023 Tatsuya Ohyama
 
 
 ## ChangeLog
+### Ver. 2.0 (2023-09-15)
+* Change drawing method of borders.
+* Support number format.
+* Fix bug that cannnot read workbook with specific sheet name.
+
 ### Ver. 1.0 (2023-09-14)
-* Release
+* Release.
 
