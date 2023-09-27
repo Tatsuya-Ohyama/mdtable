@@ -122,7 +122,7 @@ class Cell:
 		"""
 		Method to get cell size
 		"""
-		list_value = self.format_value.split("\n")
+		list_value = str(self.format_value).split("\n")
 		self._size = [len(list_value), max([len(v) for v in list_value])]
 		return self
 
@@ -322,7 +322,7 @@ def convert_markdown(layout_cells):
 						r.append(" ")
 
 			# add value
-			values = obj_cell.format_value.split("\n")
+			values = str(obj_cell.format_value).split("\n")
 			if len(values) < len(row):
 				values += [""]*(len(row) - len(values))
 			values = [list_format[col_i].format(v) for v in values]

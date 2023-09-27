@@ -40,6 +40,9 @@ Copyright (c) 2023 Tatsuya Ohyama
 
 
 ## ChangeLog
+### Ver. 2.2 (2023-09-27)
+* Fix bug that cannot convert cell with number format
+
 ### Ver. 2.1 (2023-09-15)
 * Support multiline in a cell.
 
