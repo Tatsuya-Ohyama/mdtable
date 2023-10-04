@@ -37,6 +37,7 @@ class Cell:
 		self._borders = [None, None, None, None]	# top, right, bottom, and left borders
 		self._style = None
 		self._size = [None, None]
+		self._is_header = False
 
 		self.set_value(value)
 
@@ -117,6 +118,10 @@ class Cell:
 			self.set_border()
 		return self._borders[3]
 
+	@property
+	def is_header(self):
+		return self._is_header
+
 
 	def get_size(self):
 		"""
@@ -180,7 +185,7 @@ class Cell:
 		"""
 		Method to make border information from merged cell information
 		"""
-		self._borders = [True, True, True, True]
+		self._borders = [True, True, True, True]	# [top, right, bottom, left]
 		if len(self._merged_cells) == 0:
 			# not merged cell
 			return self
@@ -196,6 +201,17 @@ class Cell:
 				self._borders[2] = False
 			elif row_idx_self > row_idx and col_idx_self == col_idx:
 				self._borders[0] = False
+		return self
+
+
+	def set_header(self, is_header):
+		"""
+		Method to set header
+
+		Args:
+			is_header (bool): header option
+		"""
+		self._is_header = is_header
 		return self
 
 
@@ -262,6 +278,7 @@ def get_cells(input_file, sheetname, cell_area):
 		for cell in row:
 			obj_cell = Cell(cell.coordinate, cell.value)
 			obj_cell.set_number_format(cell.number_format)
+			obj_cell.set_header(cell.font.b)	# header option
 			layout_cells[-1].append(obj_cell)
 			list_cells[cell.coordinate] = obj_cell
 
@@ -270,8 +287,22 @@ def get_cells(input_file, sheetname, cell_area):
 	for list_coordinate in merged_cells:
 		list_obj_cell = [list_cells[coordinate] for coordinate in list_coordinate if coordinate in list_cells.keys()]
 		for obj_cell in list_obj_cell:
-			partner_obj_cell = set(list_obj_cell) - set([obj_cell])
-			obj_cell.set_merged_cell(list(partner_obj_cell))
+			partner_obj_cells = set(list_obj_cell) - set([obj_cell])
+			# print(obj_cell.coordinate, [v.coordinate for v in partner_obj_cells])
+			obj_cell.set_merged_cell(list(partner_obj_cells))
+			for obj_partner_cell in partner_obj_cells:
+				obj_partner_cell.set_header(obj_cell.is_header)
+
+	# make one header border
+	list_border = [all([obj_cell.is_header for obj_cell in row]) for row in layout_cells]
+	row_idx_header = len(list_border) - list_border[-1::-1].index(True) - 1
+	for row_idx, row_val in enumerate(layout_cells):
+		for obj_cell in row_val:
+			if row_idx == row_idx_header:
+				obj_cell.set_header(True)
+
+			else:
+				obj_cell.set_header(False)
 
 	return layout_cells
 
@@ -285,7 +316,7 @@ def convert_markdown(layout_cells):
 	for col_i in range(max_col):
 		width = [layout_cells[row_i][col_i].width+2 for row_i in range(max_row)]
 		list_width.append(max(width))
-	list_format = ["{0:^"+str(v)+"}" for v in list_width]
+	list_format = ["{0:<"+str(v)+"}" for v in list_width]
 
 	# check height
 	list_height = []
@@ -342,7 +373,10 @@ def convert_markdown(layout_cells):
 			# bottom border
 			if obj_cell.has_border_bottom:
 				# add horizontal bottom border
-				border_horizontal_bottom.append(BORDER_HORIZONTAL*list_width[col_i])
+				if obj_cell.is_header:
+					border_horizontal_bottom.append(":"+BORDER_HEADER*(list_width[col_i]-2)+":")
+				else:
+					border_horizontal_bottom.append(BORDER_HORIZONTAL*list_width[col_i])
 			else:
 				# no border
 				border_horizontal_bottom.append(" "*list_width[col_i])
@@ -379,6 +413,6 @@ if __name__ == '__main__':
 	str_grid_table = convert_markdown(layout_cells)
 
 	if args.TO_CLIPBOARD:
-		pyperclip.copy(str_grid_table)
+		pyperclip.copy(str_grid_table+"\n")
 	else:
-		print(str_grid_table)
+		print(str_grid_table+"\n")
