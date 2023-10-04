@@ -283,9 +283,9 @@ def convert_markdown(layout_cells):
 	# check width
 	list_width = []
 	for col_i in range(max_col):
-		width = [layout_cells[row_i][col_i].width for row_i in range(max_row)]
+		width = [layout_cells[row_i][col_i].width+2 for row_i in range(max_row)]
 		list_width.append(max(width))
-	list_format = ["{0:<"+str(v)+"}" for v in list_width]
+	list_format = ["{0:^"+str(v)+"}" for v in list_width]
 
 	# check height
 	list_height = []
@@ -325,7 +325,7 @@ def convert_markdown(layout_cells):
 			values = str(obj_cell.format_value).split("\n")
 			if len(values) < len(row):
 				values += [""]*(len(row) - len(values))
-			values = [list_format[col_i].format(v) for v in values]
+			values = [list_format[col_i].format(" "+v+" ") for v in values]
 			for r, v  in zip(row, values):
 				r.append(v)
 
