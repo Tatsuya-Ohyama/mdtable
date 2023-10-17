@@ -40,6 +40,9 @@ Copyright (c) 2023 Tatsuya Ohyama
 
 
 ## ChangeLog
+### Ver. 2.5 (2023-10-17)
+* Support 1000-separator.
+
 ### Ver. 2.4 (2023-10-17)
 * Change `-r` option to a required option.
 * Support tables that do not contain headers.
