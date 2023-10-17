@@ -164,9 +164,16 @@ class Cell:
 		Args:
 			number_format (str): number format style
 		"""
+		self._style = "{0:"
+		if "," in number_format:
+			self._style += ","
+
 		obj_match = RE_NUMBER_FORMAT_VALUE.search(number_format)
 		if obj_match:
-			self._style = "{0:." + str(len(obj_match.group(1))) + "f}"
+			self._style += "." + str(len(obj_match.group(1))) + "f"
+
+		self._style += "}"
+
 		return self
 
 
