@@ -7,7 +7,7 @@ Program to convert .xlsx to grid_tables for markdown
 ## Usage
 
 ```sh
-$ mdtable.py [-h] -i INPUT.xlsx [-s SHEET_NAME] [-r CELL_NAME CELL_NAME] [-c]
+$ mdtable.py [-h] -i INPUT.xlsx [-s SHEET_NAME] -r CELL_NAME CELL_NAME [-c]
 ```
 
 * `-h`, `--help`
@@ -40,6 +40,10 @@ Copyright (c) 2023 Tatsuya Ohyama
 
 
 ## ChangeLog
+### Ver. 2.4 (2023-10-17)
+* Change `-r` option to a required option.
+* Support tables that do not contain headers.
+
 ### Ver. 2.3 (2023-10-04)
 * Output cell values start with spaces at both side.
 * Recognize all bold cells in row as header.
