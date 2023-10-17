@@ -295,7 +295,10 @@ def get_cells(input_file, sheetname, cell_area):
 
 	# make one header border
 	list_border = [all([obj_cell.is_header for obj_cell in row]) for row in layout_cells]
-	row_idx_header = len(list_border) - list_border[-1::-1].index(True) - 1
+	row_idx_header = None
+	if any(list_border):
+		row_idx_header = len(list_border) - list_border[-1::-1].index(True) - 1
+
 	for row_idx, row_val in enumerate(layout_cells):
 		for obj_cell in row_val:
 			if row_idx == row_idx_header:
@@ -403,7 +406,7 @@ if __name__ == '__main__':
 	parser = argparse.ArgumentParser(description="Program to convert .xlsx to grid_tables for markdown", formatter_class=argparse.RawTextHelpFormatter)
 	parser.add_argument("-i", dest="INPUT_FILE", metavar="INPUT.xlsx", required=True, help="input .xlsx file")
 	parser.add_argument("-s", dest="SHEET_NAME", metavar="SHEET_NAME", help="sheet name for converting table")
-	parser.add_argument("-r", dest="CELL_AREA", metavar="CELL_NAME", nargs=2, default=[None, None], help="Start and End position cells for target square area")
+	parser.add_argument("-r", dest="CELL_AREA", metavar="CELL_NAME", nargs=2, required=True, default=[None, None], help="Start and End position cells for target square area")
 	parser.add_argument("-c", dest="TO_CLIPBOARD", action="store_true", default=False, help="send clipboard")
 	args = parser.parse_args()
 
